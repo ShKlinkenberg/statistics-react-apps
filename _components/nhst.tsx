@@ -372,6 +372,3 @@ function th() {
 function td() {
   return { border: "1px solid #d1d5db", padding: "10px 14px", textAlign: "center", lineHeight: 1.6 };
 }
-
-
-export default normalPDF

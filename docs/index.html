@@ -92,7 +92,7 @@ ul.task-list li input[type="checkbox"] {
     const options = {
       valueNames: ['listing-date','listing-title','listing-description','listing-categories',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
       
-      searchColumns: [],
+      searchColumns: ["listing-date","listing-title","listing-author","listing-image","listing-description"],
     };
 
     window['quarto-listings'] = window['quarto-listings'] || {};
@@ -206,7 +206,7 @@ window.Quarto = {
 
 
 <p>Welcome to this collection of new projects. Add a Quarto document to the <code>projects/</code> folder and it will appear here automatically.</p>
-<p></p><div id="react-normalPDF-tq1XKSIL"></div><p></p>
+<p></p><div id="react-nhst-iZihI3Ag"></div><p></p>
 <p>Test</p>
 
 
@@ -214,7 +214,28 @@ window.Quarto = {
 
 <div class="quarto-listing quarto-listing-container-default" id="listing-listing">
 <div class="list quarto-listing-default">
+<div class="quarto-post image-right" data-index="0" data-categories="Y2F0ZWdvcnk=" data-listing-date-sort="1790028000000" data-listing-file-modified-sort="1790089442127" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="18">
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./projects/project-template.html" class="no-external">Project title</a>
+</h3>
+<div class="listing-categories">
 
+<div class="listing-category" onclick="window.quartoListingCategory('Y2F0ZWdvcnk='); return false;">category</div>
+
+</div>
+<div class="delink listing-description"><a href="./projects/project-template.html" class="no-external">
+<p>A short description of the project.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./projects/project-template.html" class="no-external">
+<div class="listing-date">
+Sep 22, 2026
+</div>
+</a>
+</div>
+</div>
 </div>
 <div class="listing-no-matching d-none">No matching items</div>
 </div></main> <!-- /main -->
@@ -992,9 +1013,7 @@ function th() {
 function td() {
   return { border: "1px solid #d1d5db", padding: "10px 14px", textAlign: "center", lineHeight: 1.6 };
 }
-
-
-ReactDOM.render( <React.StrictMode>    <normalPDF/>  </React.StrictMode>,  document.getElementById("react-normalPDF-tq1XKSIL") );</script>
+ReactDOM.render( <React.StrictMode>    <nhst/>  </React.StrictMode>,  document.getElementById("react-nhst-iZihI3Ag") );</script>
 
 
 

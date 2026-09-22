@@ -11,6 +11,6 @@ listing:
 
 Welcome to this collection of new projects. Add a Quarto document to the `projects/` folder and it will appear here automatically.
 
-{{< react normalPDF type="typescript" >}}
+{{< react nhst type="typescript" >}}
 
 Test
