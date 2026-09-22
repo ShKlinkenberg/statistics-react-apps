@@ -1,0 +1,12 @@
+---
+title: "New Projects"
+description: "A growing collection of new projects."
+listing:
+  contents: projects
+  type: default
+  sort: "date desc"
+  fields: [date, title, description, categories]
+  page-size: 20
+---
+
+Welcome to this collection of new projects. Add a Quarto document to the `projects/` folder and it will appear here automatically.

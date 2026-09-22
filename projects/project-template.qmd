@@ -1,0 +1,9 @@
+---
+title: "Project title"
+description: "A short description of the project."
+date: 2026-09-22
+categories: [category]
+draft: true
+---
+
+Replace this template with your project content, then remove `draft: true` to publish it in the project list.

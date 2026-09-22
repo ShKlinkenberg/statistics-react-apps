@@ -1,0 +1,18 @@
+project:
+  type: website
+
+website:
+  title: "New Projects"
+  navbar:
+    right:
+      - href: index.qmd
+        text: Projects
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+execute:
+  freeze: auto
