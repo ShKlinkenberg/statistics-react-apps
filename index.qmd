@@ -1,5 +1,5 @@
 ---
-title: "New Projects"
+title: "Statistics React Apps"
 description: "A growing collection of new projects."
 listing:
   contents: projects
@@ -10,3 +10,7 @@ listing:
 ---
 
 Welcome to this collection of new projects. Add a Quarto document to the `projects/` folder and it will appear here automatically.
+
+{{< react normalPDF type="typescript" >}}
+
+Test

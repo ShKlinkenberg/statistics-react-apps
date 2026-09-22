@@ -15,5 +15,10 @@ format:
     css: styles.css
     toc: true
 
+react:
+  components: _components
+  resources: _components
+
 execute:
   freeze: auto
+
