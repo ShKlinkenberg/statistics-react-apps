@@ -11,5 +11,5 @@
     "jsx": "react-jsx",
     "skipLibCheck": true
   },
-  "include": ["nhst.tsx", "src"]
+  "include": ["nhst.tsx", "regression.tsx", "src"]
 }

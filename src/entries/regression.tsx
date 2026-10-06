@@ -1,12 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import NHSTExplainer from "../nhst";
-import "./styles.css";
+import RegressionExplorer from "../../regression";
+import "../styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <main>
-      <NHSTExplainer />
+      <RegressionExplorer />
     </main>
   </StrictMode>,
 );
