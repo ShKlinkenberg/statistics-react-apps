@@ -244,13 +244,18 @@ export default function App() {
     return labels;
   }, [pr, zMin, zMax]);
 
-  // ── Fixed axis NAME labels — always at the same screen positions ──────────
-  // Place them in the SVG margins, completely outside the rotating box.
-  const AXIS_NAMES = [
-    { x: 350, y: 448, text: "X" },   // bottom centre
-    { x: 30,  y: 390, text: "Y" },   // bottom left
-    { x: 30,  y:  30, text: "Z (outcome)" },  // top left
-  ];
+  // ── Axis name labels: follow the midpoint of their box edge ───────────────
+  const AXIS_NAMES = useMemo(() => {
+    const xAxis = pr(0, YMIN, -3);
+    const yAxis = pr(XMIN, 0, -3);
+    const zAxis = pr(XMIN, YMIN, 0);
+
+    return [
+      { x: xAxis.x,      y: xAxis.y + 30, text: "X" },
+      { x: yAxis.x - 30, y: yAxis.y + 8,  text: "Y" },
+      { x: zAxis.x - 34, y: zAxis.y + 4,  text: "Z (outcome)" },
+    ];
+  }, [pr]);
 
    const fmt = (n: number, d = 2) => Number(n).toFixed(d);
   const tX=Math.abs(bx)+.55, tY=Math.abs(by)+.45, tI=Math.abs(bxy)+.25;
@@ -344,7 +349,7 @@ export default function App() {
               Y-slope = {fmt(slopeY)}
             </text>
 
-            {/* ── fixed axis name labels — never move ── */}
+            {/* ── axis names: stay upright while following their box edge ── */}
             {AXIS_NAMES.map(({ x, y, text }) => (
               <text key={text} x={x} y={y} fontSize="13" fontWeight="700" fill="#21374d" textAnchor="middle">{text}</text>
             ))}
