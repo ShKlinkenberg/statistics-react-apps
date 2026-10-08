@@ -31,6 +31,19 @@ function rotatePoint(x: number, y: number, z: number, azDeg: number, elDeg: numb
 
 const CX = 350, CY = 230, PERSP = 6.5;
 const XMIN = -3, XMAX = 3, YMIN = -3, YMAX = 3;
+// Fixed outcome range from -5 to 5.
+// Changing the intercept translates the surface without rescaling any axis.
+const ZMIN = -5, ZMAX = 5;
+
+// Observations are generated once from the initial model, not the live sliders.
+// Their X, Y, and Z values remain fixed as the regression surface changes.
+const PTS_XY: [number, number][] = [[-2.7,-2.4],[-2.3,-.5],[-2.0,1.7],[-1.3,2.5],[-.8,-1.6],[-.4,.6],[0,2.5],[.4,-2.4],[.8,-.7],[1.1,1.1],[1.55,2.3],[2,-1.8],[2.35,.15],[2.65,1.7]];
+const RES = [.55,-.34,.28,-.42,.18,-.62,.45,.37,-.2,.16,-.4,.34,-.3,.46];
+const DATA_POINTS = PTS_XY.map(([x, y], i) => ({
+  x,
+  y,
+  z: 2.5 + 1.0 * x - 0.5 * y + 0.8 * x * y + RES[i],
+}));
 
 function toScreen([x, y, z]: Vec3, scale: number): ScreenPoint {
   const s = PERSP / (PERSP + y);
@@ -39,6 +52,35 @@ function toScreen([x, y, z]: Vec3, scale: number): ScreenPoint {
 function project(wx: number, wy: number, wz: number, az: number, el: number, scale: number): ScreenPoint {
   return toScreen(rotatePoint(wx, wy, wz, az, el), scale);
 }
+
+const fmt = (n: number, d = 2) => Number(n).toFixed(d);
+
+// Keep the component identity stable so dragging never remounts the input.
+const Slider = React.memo(function Slider({
+  label, value, setValue, min = -2, max = 2, step = 0.01, color
+}: SliderProps) {
+  const updateValue = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(e.currentTarget.valueAsNumber);
+  }, [setValue]);
+
+  return (
+    <label style={{ display:"block", marginBottom:10 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, marginBottom:2 }}>
+        <b style={{ color }}>{label}</b>
+        <span style={{ fontVariantNumeric:"tabular-nums", color:"#344a60" }}>{fmt(value)}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={updateValue}
+        style={{ accentColor:color, width:"100%", cursor:"pointer" }}
+      />
+    </label>
+  );
+});
 
 export default function App() {
   const [b0,  setB0]  = useState(2.5);
@@ -101,26 +143,12 @@ export default function App() {
     setScale(s => Math.max(30, Math.min(160, s - e.deltaY * 0.08)));
   }, []);
 
-  const pr = useCallback((wx: number, wy: number, wz: number) => project(wx, wy, wz, az, el, scale), [az, el, scale]);
+  const pr   = useCallback((wx: number, wy: number, wz: number) => project(wx, wy, wz, az, el, scale), [az, el, scale]);
   const zVal = useCallback((x: number, y: number) => b0 + bx * x + by * y + bxy * x * y, [b0, bx, by, bxy]);
 
-  const zMin = useMemo(() => {
-    let m = Infinity;
-    for (let x = XMIN; x <= XMAX; x += 0.5)
-      for (let y = YMIN; y <= YMAX; y += 0.5)
-        m = Math.min(m, zVal(x, y));
-    return Math.floor(m) - 1;
-  }, [zVal]);
-
-  const zMax = useMemo(() => {
-    let m = -Infinity;
-    for (let x = XMIN; x <= XMAX; x += 0.5)
-      for (let y = YMIN; y <= YMAX; y += 0.5)
-        m = Math.max(m, zVal(x, y));
-    return Math.ceil(m) + 1;
-  }, [zVal]);
-
-  const toWorldZ = useCallback((z: number) => ((z - zMin) / (zMax - zMin)) * 6 - 3, [zMin, zMax]);
+  const zMin = ZMIN;
+  const zMax = ZMAX;
+  const toWorldZ = useCallback((z: number) => ((z - ZMIN) / (ZMAX - ZMIN)) * 6 - 3, []);
 
   // ── box geometry ──────────────────────────────────────────────────────────
   const boxVerts: Vec3[] = [
@@ -184,12 +212,16 @@ export default function App() {
     return `rgb(${Math.round(50+t*120)},${Math.round(100+t*80)},${Math.round(210-t*80)})`;
   }, [zMin, zMax]);
 
-  const PTS_XY: [number, number][] = [[-2.7,-2.4],[-2.3,-.5],[-2.0,1.7],[-1.3,2.5],[-.8,-1.6],[-.4,.6],[0,2.5],[.4,-2.4],[.8,-.7],[1.1,1.1],[1.55,2.3],[2,-1.8],[2.35,.15],[2.65,1.7]];
-  const RES = [.55,-.34,.28,-.42,.18,-.62,.45,.37,-.2,.16,-.4,.34,-.3,.46];
-  const points = useMemo(() => PTS_XY.map(([x,y],i) => ({
-    sc:   pr(x, y, Math.max(-3,Math.min(3,toWorldZ(zVal(x,y)+RES[i])))),
-    surf: pr(x, y, Math.max(-3,Math.min(3,toWorldZ(zVal(x,y))))),
-  })), [pr, zVal, toWorldZ]);
+  // Observed point positions depend only on the camera, never on coefficients.
+  const observedPoints = useMemo(() => DATA_POINTS.map(({ x, y, z }) =>
+    pr(x, y, toWorldZ(z))
+  ), [pr, toWorldZ]);
+
+  // Only the predicted endpoints of residual lines follow the surface.
+  const points = useMemo(() => DATA_POINTS.map(({ x, y }, i) => ({
+    sc: observedPoints[i],
+    surf: pr(x, y, toWorldZ(zVal(x, y))),
+  })), [observedPoints, pr, zVal, toWorldZ]);
 
   const slopeX  = bx + bxy * yAt;
   const slopeY  = by + bxy * xAt;
@@ -201,13 +233,8 @@ export default function App() {
   const selPt   = pr(xAt, yAt, toWorldZ(zAt));
 
   // ── Fixed axis tick marks on the box edges ────────────────────────────────
-  // We project tick positions but render the LABEL at a fixed offset from the
-  // nearest box corner so labels don't rotate with the view.
-  //
-  // Strategy: find the two box corners that bound each axis, project them,
-  // then place tick labels by lerping between those two projected corners.
-  // The corner positions themselves rotate, but the label text stays readable.
-
+  // Tick values and outcome scaling are independent of the coefficients.
+  // Projected positions change only when rotating or zooming the view.
   const fixedAxisLabels = useMemo(() => {
     const labels = [];
     const zStep  = (zMax - zMin) / 4;
@@ -218,8 +245,7 @@ export default function App() {
       const t = (v - XMIN) / (XMAX - XMIN);
       const sx = xA.x + t * (xB.x - xA.x);
       const sy = xA.y + t * (xB.y - xA.y);
-      // offset perpendicular-ish: just push down
-       labels.push({ x: sx, y: sy + 16, text: String(v), anchor: "middle" as TextAnchor });
+      labels.push({ x: sx, y: sy + 16, text: String(v), anchor: "middle" as TextAnchor });
     }
 
     // Y axis: bottom edge from (XMIN,YMIN,-3) to (XMIN,YMAX,-3)
@@ -228,7 +254,7 @@ export default function App() {
       const t = (v - YMIN) / (YMAX - YMIN);
       const sx = yA.x + t * (yB.x - yA.x);
       const sy = yA.y + t * (yB.y - yA.y);
-       labels.push({ x: sx - 14, y: sy + 4, text: String(v), anchor: "middle" as TextAnchor });
+      labels.push({ x: sx - 14, y: sy + 4, text: String(v), anchor: "middle" as TextAnchor });
     }
 
     // Z axis: vertical edge from (XMIN,YMIN,-3) to (XMIN,YMIN,3)
@@ -238,46 +264,36 @@ export default function App() {
       const t  = i / 4;
       const sx = zA.x + t * (zB.x - zA.x);
       const sy = zA.y + t * (zB.y - zA.y);
-       labels.push({ x: sx - 18, y: sy + 4, text: dz.toFixed(1), anchor: "end" as TextAnchor });
+      labels.push({ x: sx - 18, y: sy + 4, text: dz.toFixed(1), anchor: "end" as TextAnchor });
     }
 
     return labels;
   }, [pr, zMin, zMax]);
 
-  // ── Axis name labels: follow the midpoint of their box edge ───────────────
+  // Axis names are centered along their projected box edges.
+  // Small offsets keep them separate from tick labels as the view rotates.
   const AXIS_NAMES = useMemo(() => {
-    const xAxis = pr(0, YMIN, -3);
-    const yAxis = pr(XMIN, 0, -3);
-    const zAxis = pr(XMIN, YMIN, 0);
-
+    const origin = pr(XMIN, YMIN, -3);
     return [
-      { x: xAxis.x,      y: xAxis.y + 30, text: "X" },
-      { x: yAxis.x - 30, y: yAxis.y + 8,  text: "Y" },
-      { x: zAxis.x - 34, y: zAxis.y + 4,  text: "Z (outcome)" },
-    ];
+      { end: pr(XMAX, YMIN, -3), text: "X", offsetX: 0, offsetY: 34 },
+      { end: pr(XMIN, YMAX, -3), text: "Y", offsetX: -34, offsetY: 4 },
+      { end: pr(XMIN, YMIN, 3), text: "Z (outcome)", offsetX: -86, offsetY: 0 },
+    ].map(({ end, text, offsetX, offsetY }) => ({
+      x: (origin.x + end.x) / 2 + offsetX,
+      y: (origin.y + end.y) / 2 + offsetY,
+      text,
+      anchor: "middle" as TextAnchor,
+    }));
   }, [pr]);
 
-   const fmt = (n: number, d = 2) => Number(n).toFixed(d);
   const tX=Math.abs(bx)+.55, tY=Math.abs(by)+.45, tI=Math.abs(bxy)+.25;
   const stdX=bx/tX, stdY=by/tY, stdI=bxy/tI;
-
-   const Slider = ({ label, value, setValue, min=-2, max=2, step=0.05, color }: SliderProps) => (
-    <label style={{ display:"block", marginBottom:10 }}>
-      <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, marginBottom:2 }}>
-        <b style={{ color }}>{label}</b>
-        <span style={{ fontVariantNumeric:"tabular-nums", color:"#344a60" }}>{fmt(value)}</span>
-      </div>
-      <input type="range" min={min} max={max} step={step} value={value}
-        onChange={e => setValue(+e.target.value)}
-        style={{ accentColor:color, width:"100%", cursor:"pointer" }}/>
-    </label>
-  );
 
   return (
     <div style={{ fontFamily:"Inter,ui-sans-serif,system-ui,sans-serif", color:"#16263a", background:"#f4f7fb", borderRadius:16, padding:20, maxWidth:1160, margin:"auto", boxSizing:"border-box" }}>
       <h1 style={{ fontSize:19, fontWeight:750, marginBottom:3 }}>Interaction in multiple regression</h1>
       <p style={{ color:"#52657a", fontSize:13, lineHeight:1.5, marginBottom:14 }}>
-        <b>Drag the plot</b> to rotate · <b>Scroll</b> to zoom · Use the sliders to reshape the surface.
+        <b>Drag the plot</b> to rotate · <b>Scroll</b> to zoom · Use the sliders to reshape the surface. Data points stay fixed.
       </p>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 300px", gap:14, marginBottom:14 }}>
@@ -349,13 +365,17 @@ export default function App() {
               Y-slope = {fmt(slopeY)}
             </text>
 
-            {/* ── axis names: stay upright while following their box edge ── */}
-            {AXIS_NAMES.map(({ x, y, text }) => (
-              <text key={text} x={x} y={y} fontSize="13" fontWeight="700" fill="#21374d" textAnchor="middle">{text}</text>
+            {/* ── axis names: centered along the axes, always upright ── */}
+            {AXIS_NAMES.map(({ x, y, text, anchor }) => (
+              <text key={text} x={x} y={y} fontSize="13" fontWeight="700"
+                fill="#21374d" textAnchor={anchor} dominantBaseline="middle"
+                stroke="white" strokeWidth="3" paintOrder="stroke" strokeLinejoin="round">
+                {text}
+              </text>
             ))}
           </svg>
           <p style={{ textAlign:"center", fontSize:11.5, color:"#9fb0c0", marginTop:0, marginBottom:4 }}>
-            🖱 Drag plot to rotate · Scroll to zoom
+            🖱 Drag plot to rotate · Scroll to zoom · Data points and Z-axis range are fixed
           </p>
         </div>
 
@@ -400,7 +420,7 @@ export default function App() {
             The <span style={{ color:"#7446b8", fontWeight:700 }}>interaction coefficient</span> makes each slope conditional on the other predictor:<br/>
             <span style={{ color:"#d95835", fontWeight:600 }}>Slope of X</span> = <span style={{ color:"#d95835" }}>{fmt(bx)}</span> + <span style={{ color:"#7446b8" }}>{fmt(bxy)}</span>·Y = <b>{fmt(slopeX)}</b> when Y = {fmt(yAt)}<br/>
             <span style={{ color:"#0aada8", fontWeight:600 }}>Slope of Y</span> = <span style={{ color:"#00837f" }}>{fmt(by)}</span> + <span style={{ color:"#7446b8" }}>{fmt(bxy)}</span>·X = <b>{fmt(slopeY)}</b> when X = {fmt(xAt)}<br/>
-             When <span style={{ color:"#7446b8", fontWeight:700 }}>bₓᵧ = 0</span> the surface is a plane. A nonzero interaction twists it into a saddle shape.
+            When <span style={{ color:"#7446b8", fontWeight:700 }}>bₓᵧ = 0</span> the surface is flat. Increasing it twists it into a saddle shape.
           </div>
         </div>
 
