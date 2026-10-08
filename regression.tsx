@@ -96,7 +96,6 @@ export default function App() {
 
   const dragActive = useRef(false);
   const lastPos    = useRef({ x: 0, y: 0 });
-
   const onSvgMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     dragActive.current = true;
     lastPos.current = { x: e.clientX, y: e.clientY };
